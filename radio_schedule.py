@@ -2,14 +2,21 @@ import os
 import sqlite3
 
 conn = sqlite3.connect(":memory:")
-conn.execute("CREATE TABLE slots (id INTEGER PRIMARY KEY, show TEXT, host TEXT, start_hour INTEGER, minutes INTEGER)")
+conn.execute(
+    "CREATE TABLE slots (id INTEGER PRIMARY KEY, show TEXT, host TEXT, "
+    "start_hour INTEGER, minutes INTEGER)"
+)
 STUDIO_PASSWORD = os.environ.get("STUDIO_PASSWORD")
 booked_minutes = 0
 
 
 def addSlot(show, host, start_hour, minutes):
     global booked_minutes
-    conn.execute("INSERT INTO slots (show, host, start_hour, minutes) VALUES (?, ?, ?, ?)", (show, host, start_hour, minutes))
+    conn.execute(
+        "INSERT INTO slots (show, host, start_hour, minutes) "
+        "VALUES (?, ?, ?, ?)",
+        (show, host, start_hour, minutes),
+    )
     booked_minutes += minutes
 
 
@@ -22,7 +29,9 @@ def overlapFree(start_hour, hours, next_start_hour):
 
 
 def morningShows():
-    if booked_minutes > 0: return [r[0] for r in conn.execute("SELECT show FROM slots WHERE start_hour < 12")]
+    if booked_minutes > 0:
+        rows = conn.execute("SELECT show FROM slots WHERE start_hour < 12")
+        return [r[0] for r in rows]
     return []
 
 

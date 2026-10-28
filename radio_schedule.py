@@ -1,3 +1,5 @@
+"""Radio station programme schedule: book, list, check and remove slots."""
+
 import os
 import sqlite3
 
@@ -7,44 +9,52 @@ conn.execute(
     "start_hour INTEGER, minutes INTEGER)"
 )
 STUDIO_PASSWORD = os.environ.get("STUDIO_PASSWORD")
-booked_minutes = 0
 
 
-def addSlot(show, host, start_hour, minutes):
-    global booked_minutes
+def add_slot(show, host, start_hour, minutes):
+    """Book a show slot starting at start_hour and lasting minutes."""
     conn.execute(
         "INSERT INTO slots (show, host, start_hour, minutes) "
         "VALUES (?, ?, ?, ?)",
         (show, host, start_hour, minutes),
     )
-    booked_minutes += minutes
 
 
-def slotLabel(show, host):
-    return "{} hosted by {}".format(show, host)
+def total_booked_minutes():
+    """Return the total number of minutes currently booked."""
+    row = conn.execute("SELECT COALESCE(SUM(minutes), 0) FROM slots")
+    return row.fetchone()[0]
 
 
-def overlapFree(start_hour, hours, next_start_hour):
+def slot_label(show, host):
+    """Return a human-readable label for a show and its host."""
+    return f"{show} hosted by {host}"
+
+
+def overlap_free(start_hour, hours, next_start_hour):
+    """Return True if a slot of the given length ends before the next one."""
     return start_hour + hours <= next_start_hour
 
 
-def morningShows():
-    if booked_minutes > 0:
-        rows = conn.execute("SELECT show FROM slots WHERE start_hour < 12")
-        return [r[0] for r in rows]
-    return []
+def morning_shows():
+    """Return the names of all shows that start before noon."""
+    rows = conn.execute("SELECT show FROM slots WHERE start_hour < 12")
+    return [r[0] for r in rows]
 
 
-def removeSlot(slot_id):
+def remove_slot(slot_id):
+    """Remove the slot with the given id."""
     conn.execute("DELETE FROM slots WHERE id = ?", (slot_id,))
 
 
 def main():
-    addSlot("Sunrise Beats", "Vik", 7, 60)
-    addSlot("Midday Talk", "Anu", 13, 45)
-    print(slotLabel("Sunrise Beats", "Vik"))
-    print(overlapFree(7, 1, 13), morningShows())
-    removeSlot(2)
+    """Run a short demonstration of the schedule."""
+    add_slot("Sunrise Beats", "Vik", 7, 60)
+    add_slot("Midday Talk", "Anu", 13, 45)
+    print(slot_label("Sunrise Beats", "Vik"))
+    print(overlap_free(7, 1, 13), morning_shows())
+    remove_slot(2)
 
 
-main()
+if __name__ == "__main__":
+    main()
